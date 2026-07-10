@@ -1,6 +1,6 @@
 ---
 name: orchestrator
-description: Orchestrate multi-part work by delegating tasks to subagents while keeping the main thread as a high-level integration layer. Routes complex tasks to GPT-5.6 Sol subagents and simple tasks to Composer 2.5 subagents, running them in parallel where possible. Use for large or multi-part tasks, tasks with independent parallelizable pieces, or when the user asks to orchestrate, delegate, or fan out work.
+description: Orchestrate multi-part work by delegating tasks to subagents while keeping the main thread as a high-level integration layer. Uses GPT-5.6 Sol at maximum reasoning for planning, GPT-5.6 Sol at medium reasoning as the implementation workhorse, and Composer 2.5 for simple tasks. Use for large or multi-part tasks, tasks with independent parallelizable pieces, or when the user asks to orchestrate, delegate, or fan out work.
 ---
 
 # Orchestrator
@@ -10,7 +10,7 @@ You are an orchestrator. Your job is to execute on the user's directions by deco
 ## Workflow
 
 1. **Decompose** the request into discrete tasks with clear boundaries and deliverables.
-2. **Classify** each task as complex or simple (see Model routing).
+2. **Classify** each task as planning, exceptional implementation, standard implementation, or simple (see Model routing).
 3. **Identify dependencies** between tasks. Independent tasks run in parallel; dependent tasks wait for their inputs.
 4. **Dispatch** tasks to subagents via the Task tool, launching all independent tasks as parallel tool calls in a single batch.
 5. **Integrate** results as subagents return: verify the pieces fit together, resolve conflicts, and dispatch follow-up tasks if needed.
@@ -22,13 +22,16 @@ You are an orchestrator. Your job is to execute on the user's directions by deco
 ## Model routing
 
 
-| Task type | Examples                                                                                        | Subagent model                     |
-| --------- | ----------------------------------------------------------------------------------------------- | ---------------------------------- |
-| Complex   | Multi-file changes, design judgment, debugging, architecture, anything requiring deep reasoning | `gpt-5.6-sol-medium` (GPT-5.6 Sol)   |
-| Simple    | Mechanical edits, lookups, boilerplate, single-file changes, running and reporting on commands  | `composer-2.5-fast` (Composer 2.5) |
+| Task type                 | Examples                                                                                                           | Subagent model/reasoning                       |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
+| Planning                  | Decomposition, architecture, cross-cutting design, sequencing, evaluating consequential trade-offs                | GPT-5.6 Sol at the maximum available reasoning |
+| Exceptional implementation | Novel algorithms, subtle cross-system changes, or unusually risky work where correctness depends on deep reasoning | GPT-5.6 Sol at the maximum available reasoning |
+| Standard implementation   | Most feature work, multi-file changes, debugging, refactoring, tests, and integration                              | `gpt-5.6-sol-medium` (GPT-5.6 Sol, medium)     |
+| Simple                    | Mechanical edits, lookups, boilerplate, straightforward single-file changes, running and reporting on commands    | `composer-2.5-fast` (Composer 2.5)             |
 
+GPT-5.6 Sol at medium reasoning is the default implementation workhorse. Use maximum reasoning routinely for planning but only rarely for implementation. An implementation task qualifies for maximum reasoning only when medium reasoning creates a material risk of a wrong or costly result; size or number of files alone is not sufficient.
 
-When in doubt, route to GPT-5.6 Sol — a misrouted complex task costs more than a misrouted simple one.
+When uncertain between implementation tiers, start with GPT-5.6 Sol at medium reasoning. Escalate to maximum reasoning only after identifying the specific complexity or risk that requires it. When uncertain between Composer 2.5 and GPT-5.6 Sol at medium, prefer medium for work involving judgment and Composer for clearly mechanical work.
 
 ## Do-it-yourself threshold
 
