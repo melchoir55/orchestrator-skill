@@ -6,25 +6,28 @@ A [Cursor Agent Skill](https://cursor.com/docs/agent/skills) that turns the agen
 
 When this skill is active, the agent acts as a coordinator rather than a solo implementer. The main thread stays at a high level: breaking down the request, dispatching work, checking that pieces fit together, and reporting back. Low-level implementation detail lives in subagent contexts, not in your chat.
 
-The workflow follows six steps:
+The workflow follows seven steps:
 
 1. **Decompose** — Split the request into discrete tasks with clear boundaries and deliverables.
-2. **Classify** — Label each task as complex or simple for model routing.
+2. **Classify** — Label each task as planning, exceptional implementation, standard implementation, or simple.
 3. **Identify dependencies** — Independent tasks run in parallel; dependent tasks wait for their inputs.
 4. **Dispatch** — Send tasks to subagents, launching all independent work in a single parallel batch.
 5. **Integrate** — As results return, verify consistency, resolve conflicts, and dispatch follow-ups if needed.
-6. **Report** — Summarize the integrated outcome in plain language.
+6. **Verify** — Run relevant checks and audit the integrated result.
+7. **Report** — Summarize the verified outcome in plain language.
 
 ## Model routing
 
-Tasks are routed to different subagent models based on complexity:
+Tasks are routed by the kind of reasoning they require:
 
-| Task type | Examples | Default model |
-| --------- | -------- | ------------- |
-| Complex | Multi-file changes, design judgment, debugging, architecture, deep reasoning | `gpt-5.5` |
-| Simple | Mechanical edits, lookups, boilerplate, single-file changes, running commands | `composer-2.5-fast` |
+| Task type | Examples | Default model/reasoning |
+| --------- | -------- | ----------------------- |
+| Planning | Decomposition, architecture, sequencing, consequential trade-offs | GPT-5.6 Sol at maximum available reasoning |
+| Exceptional implementation | Novel algorithms, subtle cross-system changes, unusually risky work | GPT-5.6 Sol at maximum available reasoning |
+| Standard implementation | Most feature work, multi-file changes, debugging, refactoring, tests | `gpt-5.6-sol-medium` |
+| Simple | Mechanical edits, lookups, boilerplate, straightforward single-file changes, running commands | `composer-2.5-fast` |
 
-When in doubt, route to the stronger model — a misrouted complex task costs more than a misrouted simple one. The model names in `orchestrator/SKILL.md` can be edited to whatever models you prefer or have available in your Cursor setup.
+GPT-5.6 Sol at medium reasoning is the implementation workhorse. Maximum reasoning is routine for planning but rare for implementation: file count alone does not justify it. Start implementation at medium and escalate only when a specific complexity or correctness risk requires maximum reasoning. The model names in `orchestrator/SKILL.md` can be edited to match the models available in your Cursor setup.
 
 ## Do-it-yourself threshold
 
